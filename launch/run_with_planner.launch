@@ -48,12 +48,19 @@
   	pkg ="robot_state_publisher"
 	type="robot_state_publisher"/>
 
+  <!-- SLAM -->
+  <node pkg="gmapping"
+    type="slam_gmapping"
+      name="turtlebot3_slam_gmapping"
+      output="screen">
+    <param name="base_frame" value="base_footprint"/>
+    <param name="odom_frame" value="odom"/>
+    <param name="map_frame" value="map"/>
+    <rosparam command="load"
+      file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
+  </node>
 
-  <!-- Map Server -->
-  <node name="map_server"
-	pkg ="map_server"
-	type="map_server"
-	args="$(arg map)"/>
+  
 
   <!-- Fake Localization: Publish the map->odom transform -->
   <node name="maptoodom_broadcaster"
