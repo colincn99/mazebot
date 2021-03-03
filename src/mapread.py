@@ -6,8 +6,49 @@
 #
 import rospy
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 
 from nav_msgs.msg       import OccupancyGrid
+
+def showgrid(map):
+
+    M = map.info.width
+    N = map.info.height
+
+    # Close the old figure.
+    plt.close()
+
+    fig = plt.figure()
+    ax = plt.axes()
+
+    # turn off axis labels
+    ax.axis("off")
+
+    for m in range(M+1):
+        ax.axhline(m, lw=1, color='b', zorder = 1)
+    for n in range(N+1):
+        ax.axvline(n, lw=1, color='b', zorder = 1)
+
+    color = np.ones((M,N,3))
+    for m in range(M):
+        for n in range(N):
+            if map.data[m*width + n] == -1:
+                color[m,n,0:3] = np.array([1.0, 1.0, 0])  #Yellow
+            else:
+                # Shades of pink/purple/blue. Yellow means impossible
+                p = 1-(map.data[m*width + n])/100
+                #rlevel = (1.0 - p)
+                #glevel = (1.0 - p)
+                #blevel = (1.0 - p) #if p > 0 else 0
+                #color[m,n,0:3] = np.array([rlevel, glevel, blevel])
+                color[m,n,0:3] = np.array([p, p, p]) #white if free space, black if wall
+
+    # Draw the boxes
+    ax.imshow(color, aspect='equal', interpolation='none', extent=[0, N, 0, M], zorder=0)
+
+    # Force the figure to pop up
+    plt.pause(0.001)
 
 
 #
@@ -35,4 +76,8 @@ if __name__ == "__main__":
     print("map[160,300]: (free)    ", map.data[160*width + 300])
 
     print(len(map.data))
+
+    showgrid(map)
+    input('Hit return to continue')
+
     
