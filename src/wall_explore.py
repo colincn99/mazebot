@@ -5,17 +5,15 @@
 #   Test setting the goal.
 #
 import rospy
-import threading
 import numpy as np
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 import tf
 from tf2_msgs.msg import TFMessage
-import copy
 import random
 
 THRESHOLD = 19.6
-COST_COEF = 0
+WALL_COEF = -0.002 #negative attacts to walls, positive repels from walls
 STUCK_THRESHOLD = 0.2
 
 def set_goal(pub, goal, x, y, theta):
@@ -69,30 +67,27 @@ def main():
 	pub = rospy.Publisher("/move_base_simple/goal", PoseStamped, queue_size=1)
 	goal = PoseStamped()
 	listener = tf.TransformListener()
+
 	global map
 	global global_costmap
 	map = rospy.wait_for_message('/map', OccupancyGrid)
 	costmap = rospy.wait_for_message('/move_base/global_costmap/costmap', OccupancyGrid)
 	sub_map = rospy.Subscriber('/map', OccupancyGrid, map_callback)
 	sub_costmap = rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, costmap_callback)
-	#old_data = 0
+
 	pos_history = []
-
-	#rospy.sleep(1)
-	#set_goal(pub, goal, -2.5, 1, 0)
-
-
 
 	while True:
 
 		# Wait until connected.  You don't have to wait, but the first
 		# messages might go out before the connection and hence be lost.
-		rospy.sleep(2)
+		rospy.sleep(4)
 
 		min_cost = 100000
 		min_goal = (0, 0)
 		min_index = (0, 0)
 		min_direction = [0, 0]
+		any_goal = False
 		
 		(trans,rot) = listener.lookupTransform('map', 'base_footprint',
 										   rospy.Time(0))
@@ -105,7 +100,6 @@ def main():
 		res = map.info.resolution
 		origin_x = map.info.origin.position.x
 		origin_y = map.info.origin.position.y
-		any_goal = False
 		
 		pos_history.append((pos_x, pos_y))
 		if len(pos_history) > 4:
@@ -143,7 +137,7 @@ def main():
 							x = origin_x + n * res
 							y = origin_y + m * res
 							distance = ((pos_x - x)**2 + (pos_y - y)**2)**(1/2)
-							cost = distance + COST_COEF * costmap.data[m*M + n]
+							cost = distance + WALL_COEF * costmap.data[m*M + n]
 							if cost < min_cost:
 								min_cost = cost
 								min_goal = (x, y)
@@ -158,7 +152,7 @@ def main():
 		print("position goal:", min_goal)
 		theta = 0
 		if min_direction!= [0, 0]:
-			theta = np.arctan2(*min_direction) + random.uniform(-np.pi/4, np.pi/4)
+			theta = np.arctan2(*min_direction) + np.pi/8*random.uniform(-1,1)
 		#print("direction:", min_direction)
 		print("theta:", theta)		   
 		set_goal(pub, goal, *min_goal, theta)
