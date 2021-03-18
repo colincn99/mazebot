@@ -1,0 +1,81 @@
+<launch>
+  <!-- Define the arguments used below.                -->
+  <!-- You can overwrite these from the commmand line. -->
+  <arg name="model" default="waffle"/>
+
+  <arg name="x_pos" default="-3.0"/>
+  <arg name="y_pos" default="1.0"/>
+  <arg name="z_pos" default="0.0"/>
+
+  <arg name="map"   default="$(find mazebot)/maps/map.yaml"/>
+
+
+  <!-- Set up the parameters on the ROS parameter server. -->
+  <param name="robot_description"
+	 command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+  <param name="model" value="$(arg model)"/>
+
+
+  <!-- Start Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name"
+	 value="$(find mazebot)/maps/houseblocked.world"/>
+    <arg name="paused"       value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui"          value="false"/>
+    <arg name="headless"     value="false"/>
+    <arg name="debug"        value="false"/>
+  </include>
+
+  <node pkg="gmapping"
+    type="slam_gmapping"
+      name="turtlebot3_slam_gmapping"
+      output="screen">
+    <param name="base_frame" value="base_footprint"/>
+    <param name="odom_frame" value="odom"/>
+    <param name="map_frame" value="map"/>
+    <param name="map_update_interval" value="0.5"/>
+    <param name="maxRange" value="15"/>
+    <param name="maxUrange" value="2.5"/>
+    <rosparam command="load"
+      file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
+  </node>
+
+  <!-- Add spawn the robot model -->
+  <node name="spawn_urdf"
+	pkg ="gazebo_ros"
+	type="spawn_model"
+	args="-urdf -model turtlebot3 -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
+
+
+  <!-- Run the rviz visualization, with the specified config file -->
+  <node name="rviz"
+	pkg ="rviz"
+  	type="rviz"
+	args="-d $(find mazebot)/rviz/config.rviz"
+	output="screen"/>
+
+
+  <!-- Robot State Publisher -->
+  <node name="robot_state_publisher"
+  	pkg ="robot_state_publisher"
+	type="robot_state_publisher"/>
+
+
+  <!-- Fake Localization: Publish the map->odom transform -->
+  <node name="maptoodom_broadcaster"
+	pkg ="tf2_ros"
+	type="static_transform_publisher"
+	args="0 0 0 0 0 0 map odom" />
+
+  <!-- Planner -->
+  <node name="move_base"
+	pkg ="move_base"
+	type="move_base"
+	respawn="false"
+	output="screen">
+    <rosparam command="load" file="$(find mazebot)/param/planner.yaml" />
+  </node>
+
+</launch>
