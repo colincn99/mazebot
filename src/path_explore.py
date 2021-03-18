@@ -163,12 +163,13 @@ def main():
 					 < STUCK_THRESHOLD for pos in pos_history):
 				print("robot stuck")
 				set_goal(pub, goal, pos_x + random.uniform(-1,1), pos_y + random.uniform(-1,1), random.uniform(0, 2*np.pi))
+				rospy.sleep(4)
 				continue
 
 
 		for m in range(3,M-3):
 			for n in range(3,N-3):
-				if map.data[m*M + n] < THRESHOLD and map.data[m*M + n] != -1: #if free
+				if path_length[m, n] < INFINITY: #if free
 					direction = [0, 0] #from free to unknown (y,x)
 					frontier = False
 
@@ -186,7 +187,6 @@ def main():
 						direction[1] = direction[1] - 1
 
 					if frontier:
-						
 						if check_wall(m,n,3):
 							any_goal = True
 							x = origin_x + n * res
