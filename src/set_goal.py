@@ -5,13 +5,32 @@
 #   Test setting the goal.
 #
 import rospy
+import threading
 import numpy as np
 from geometry_msgs.msg import PoseStamped
+from nav_msgs.msg import OccupancyGrid
+
+def set_goal(pub, goal, x, y, theta):
+
+	goal.header.seq = 1.0
+	goal.header.stamp = rospy.Time.now()
+	goal.header.frame_id = "map"
+
+	goal.pose.position.x = x
+	goal.pose.position.y = y
+	goal.pose.position.z = 0.0
+
+	goal.pose.orientation.x = 0.0
+	goal.pose.orientation.y = 0.0
+	goal.pose.orientation.z = np.sin(theta/2)
+	goal.pose.orientation.w = np.cos(theta/2)
+
+	pub.publish(goal)
 
 #
 #  Main Code
 #
-if __name__ == "__main__":
+def main():
 	# Prepare the node.
 	rospy.init_node('set_goal')
 
@@ -36,18 +55,11 @@ if __name__ == "__main__":
 		except:
 			print("incorrect format")
 			continue
+		set_goal(pub, goal, x, y, theta)
 
-		goal.header.seq = 1.0
-		goal.header.stamp = rospy.Time.now()
-		goal.header.frame_id = "map"
+if __name__ == "__main__":
+	main()
+	
 
-		goal.pose.position.x = x
-		goal.pose.position.y = y
-		goal.pose.position.z = 0.0
 
-		goal.pose.orientation.x = 0.0
-		goal.pose.orientation.y = 0.0
-		goal.pose.orientation.z = np.sin(theta/2)
-		goal.pose.orientation.w = np.cos(theta/2)
 
-		pub.publish(goal)
