@@ -12,9 +12,10 @@ from nav_msgs.msg import OccupancyGrid
 import tf
 from tf2_msgs.msg import TFMessage
 import copy
+import random
 
 THRESHOLD = 19.6
-COST_COEF = 1
+COST_COEF = 0
 
 def set_goal(pub, goal, x, y, theta):
 
@@ -75,13 +76,16 @@ def main():
 	sub_costmap = rospy.Subscriber('/move_base/global_costmap/costmap', OccupancyGrid, costmap_callback)
 	old_data = 0
 
+	#rospy.sleep(1)
+	#set_goal(pub, goal, -2.5, 1, 0)
+
 
 
 	while True:
 
 		# Wait until connected.  You don't have to wait, but the first
 		# messages might go out before the connection and hence be lost.
-		rospy.sleep(3)
+		rospy.sleep(2)
 
 		min_cost = 100000
 		min_goal = (0, 0)
@@ -100,7 +104,7 @@ def main():
 		origin_x = map.info.origin.position.x
 		origin_y = map.info.origin.position.y
 		
-		frontier = False
+		
 
 		print("Dimensions:", M, ",", N)
 		print("Costmap Dimensions:", costmap.info.width, ",", costmap.info.height)
@@ -109,35 +113,37 @@ def main():
 		print(np.array_equal(map.data, old_data))
 		old_data = copy.deepcopy(map.data)
 
-		for m in range(1,M-1):
-			for n in range(1,N-1):
-				if map.data[m*M + n] == -1:
+		for m in range(3,M-3):
+			for n in range(3,N-3):
+				if map.data[m*M + n] < THRESHOLD and map.data[m*M + n] != -1:
 					direction = [0, 0] #from free to unknown (y,x)
+					frontier = False
 
-					if map.data[(m-1)*M + n] < THRESHOLD and map.data[(m-1)*M + n] != -1: #down
-						frontier = True
-						direction[0] = direction[0] + 1
-					if map.data[(m+1)*M + n] < THRESHOLD and map.data[(m+1)*M + n] != -1: #up
+					if map.data[(m-1)*M + n] == -1: #down
 						frontier = True
 						direction[0] = direction[0] - 1
-					if map.data[m*M + n + 1] < THRESHOLD and map.data[m*M + n + 1] != -1: #right
+					if map.data[(m+1)*M + n] == -1: #up
 						frontier = True
-						direction[1] = direction[1] - 1
-					if map.data[m*M + n - 1] < THRESHOLD and map.data[m*M + n - 1] != -1: #left
+						direction[0] = direction[0] + 1
+					if map.data[m*M + n + 1] == -1: #right
 						frontier = True
 						direction[1] = direction[1] + 1
+					if map.data[m*M + n - 1] == -1: #left
+						frontier = True
+						direction[1] = direction[1] - 1
 
 					if frontier:
+						if check_wall(m,n,3):
 						
-						x = origin_x + n * res
-						y = origin_y + m * res
-						distance = ((pos_x - x)**2 + (pos_y - y)**2)**(1/2)
-						cost = distance + COST_COEF * costmap.data[(m-direction[0])*M + n - direction[1]]
-						if cost < min_cost:
-							min_cost = cost
-							min_goal = (x, y)
-							min_index = (m, n)
-							min_direction = direction
+							x = origin_x + n * res
+							y = origin_y + m * res
+							distance = ((pos_x - x)**2 + (pos_y - y)**2)**(1/2)
+							cost = distance + COST_COEF * costmap.data[m*M + n]
+							if cost < min_cost:
+								min_cost = cost
+								min_goal = (x, y)
+								min_index = (m, n)
+								min_direction = direction
 		
 		print("min_index", min_index)
 		print("min_goal:", min_goal)
@@ -146,7 +152,7 @@ def main():
 			theta = np.arctan2(*min_direction)
 		print("direction:", min_direction)
 		print("theta:", theta)		   
-		set_goal(pub, goal, *min_goal, theta)
+		set_goal(pub, goal, *min_goal, theta + random.uniform(-np.pi/4, np.pi/4))
 
 if __name__ == "__main__":
 	main()
