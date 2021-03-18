@@ -35,7 +35,9 @@
     <param name="base_frame" value="base_footprint"/>
     <param name="odom_frame" value="odom"/>
     <param name="map_frame" value="map"/>
-    <param name="map_update_interval" value="1.0"/>
+    <param name="map_update_interval" value="0.5"/>
+    <param name="maxRange" value="15"/>
+    <param name="maxUrange" value="0.5"/>
     <rosparam command="load"
       file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
   </node>
@@ -59,8 +61,6 @@
   <node name="robot_state_publisher"
   	pkg ="robot_state_publisher"
 	type="robot_state_publisher"/>
-
-
 
 
   <!-- Fake Localization: Publish the map->odom transform -->
